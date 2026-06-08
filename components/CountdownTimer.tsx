@@ -52,7 +52,7 @@ export function CountdownTimer() {
   useEffect(() => {
     setMounted(true);
     setTime(computeTimeLeft());
-    const id = setInterval(() => setTime(computeTimeLeft()), 1000);
+    const id = setInterval(() => setTime(computeTimeLeft()), 60_000);
     return () => clearInterval(id);
   }, []);
 
