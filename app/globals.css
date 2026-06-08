@@ -1,0 +1,104 @@
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------ */
+/*  Velovia design tokens                                              */
+/* ------------------------------------------------------------------ */
+@theme {
+  --color-velovia-pink: #d6336c;
+  --color-velovia-pink-dark: #b82a59;
+  --color-velovia-dark: #0e0f12;
+  --color-velovia-cream: #f4f2ee;
+  --color-velovia-ink: #1a1a1a;
+  --color-velovia-gray: #4a4a4a;
+
+  /* Fonts come from next/font (see layout.tsx) */
+  --font-display: var(--font-playfair), Georgia, serif;
+  --font-sans: var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
+
+  /* Page-load reveal */
+  --animate-reveal: reveal 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--color-velovia-dark);
+    color: var(--color-velovia-ink);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Utilities                                                          */
+/* ------------------------------------------------------------------ */
+@utility font-display {
+  font-family: var(--font-display);
+}
+
+/* Caps label spacing used throughout the layout */
+@utility tracking-label {
+  letter-spacing: 0.12em;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Atmosphere: subtle film grain over the dark frame                 */
+/* ------------------------------------------------------------------ */
+.grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ------------------------------------------------------------------ */
+/*  Page-load orchestration                                           */
+/* ------------------------------------------------------------------ */
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Elements opt in with .reveal + an inline --delay */
+.reveal {
+  opacity: 0;
+  animation: var(--animate-reveal);
+  animation-delay: var(--delay, 0ms);
+}
+
+/* Countdown digit flip */
+@keyframes digit-in {
+  from {
+    opacity: 0;
+    transform: translateY(-0.25em);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.digit-animate {
+  animation: digit-in 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .digit-animate {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
