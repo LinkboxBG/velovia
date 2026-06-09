@@ -8,12 +8,13 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  * Priority-list subscription endpoint.
  *
  * Requires these environment variables in production (.env.local for dev):
- *   RESEND_API_KEY      — API key from resend.com (Sending access)
- *   RESEND_AUDIENCE_ID  — Audience ID from resend.com → Audiences
- *   RESEND_FROM_EMAIL   — Verified sender address, e.g. hello@velovia.bg
+ *   RESEND_API_KEY            — API key from resend.com (Sending access)
+ *   RESEND_AUDIENCE_ID        — Audience ID from resend.com → Audiences
+ *   RESEND_FROM_EMAIL         — Verified sender address, e.g. hello@velovia.eu
+ *   GOOGLE_SHEETS_WEBHOOK_URL — Apps Script Web App URL for the waitlist sheet
  *
- * Graceful degradation: if RESEND_API_KEY is absent (local dev without .env.local),
- * the Resend calls are skipped and the form still works.
+ * Graceful degradation: each integration is skipped independently if its
+ * env var is absent — the form always returns { ok: true } to the user.
  */
 export async function POST(request: Request) {
   let email: unknown;
@@ -33,14 +34,14 @@ export async function POST(request: Request) {
     );
   }
 
+  // ── 1. Resend: add to Audience + send confirmation email ─────────────────
   const apiKey = process.env.RESEND_API_KEY;
   const audienceId = process.env.RESEND_AUDIENCE_ID;
-  const fromEmail = process.env.RESEND_FROM_EMAIL ?? "hello@velovia.bg";
+  const fromEmail = process.env.RESEND_FROM_EMAIL ?? "hello@velovia.eu";
 
   if (apiKey) {
     const resend = new Resend(apiKey);
 
-    // 1. Add to audience (stores the contact)
     if (audienceId) {
       const { error: contactError } = await resend.contacts.create({
         email,
@@ -52,7 +53,6 @@ export async function POST(request: Request) {
       }
     }
 
-    // 2. Send confirmation email to the subscriber
     const { error: emailError } = await resend.emails.send({
       from: `Velovia Premium <${fromEmail}>`,
       to: email,
@@ -63,11 +63,33 @@ export async function POST(request: Request) {
       console.error("[subscribe] Resend email error:", emailError);
     }
   } else {
-    // Dev mode without credentials — log and continue
-    console.log(`[subscribe] Dev mode — would have subscribed: ${email}`);
+    console.log(`[subscribe] Resend not configured — skipping for: ${email}`);
   }
 
-  // Always return ok:true so the UX success state is shown.
-  // Errors are logged server-side but not surfaced to the user.
+  // ── 2. Google Sheets: append row (ID · Timestamp · Email) ─────────────────
+  const sheetsWebhookUrl = process.env.GOOGLE_SHEETS_WEBHOOK_URL;
+
+  if (sheetsWebhookUrl) {
+    try {
+      const id = crypto.randomUUID().slice(0, 8);
+      const timestamp = new Date().toISOString();
+
+      const res = await fetch(sheetsWebhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, timestamp, email }),
+      });
+
+      if (!res.ok) {
+        console.error("[subscribe] Sheets webhook returned:", res.status);
+      }
+    } catch (err) {
+      console.error("[subscribe] Sheets webhook error:", err);
+    }
+  } else {
+    console.log("[subscribe] GOOGLE_SHEETS_WEBHOOK_URL not set — skipping.");
+  }
+
+  // Always return ok:true — errors are logged server-side only.
   return NextResponse.json({ ok: true });
 }
