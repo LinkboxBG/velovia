@@ -10,7 +10,7 @@ type Item = { icon: LucideIcon; label: string };
 
 const ITEMS: Item[] = [
   { icon: UserRound, label: "Professional\nCycling Coaches" },
-  { icon: ChefHat, label: "Michelin-Style\nCulinary Experience" },
+  { icon: ChefHat, label: "Chef Prepared Meals\nby Chef Ivaylo Petkov" },
   { icon: BedDouble, label: "Luxury\nAccommodation" },
   { icon: MountainSnow, label: "Carefully Selected\nMountain Routes" },
 ];

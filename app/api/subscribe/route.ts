@@ -1,18 +1,19 @@
 import { NextResponse } from "next/server";
+import { Resend } from "resend";
+import { confirmationEmail } from "@/lib/email-templates";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
  * Priority-list subscription endpoint.
  *
- * For now this only validates the email and echoes success — no data is
- * stored and no third-party keys are required.
+ * Requires these environment variables in production (.env.local for dev):
+ *   RESEND_API_KEY      — API key from resend.com (Sending access)
+ *   RESEND_AUDIENCE_ID  — Audience ID from resend.com → Audiences
+ *   RESEND_FROM_EMAIL   — Verified sender address, e.g. hello@velovia.bg
  *
- * TODO: wire up a real provider here, e.g.:
- *   - Resend     → await resend.contacts.create({ email, audienceId })
- *   - Mailchimp  → POST to /lists/{id}/members
- *   - Google Sheet → append a row via the Sheets API / a webhook
- * Read credentials from environment variables (never commit keys).
+ * Graceful degradation: if RESEND_API_KEY is absent (local dev without .env.local),
+ * the Resend calls are skipped and the form still works.
  */
 export async function POST(request: Request) {
   let email: unknown;
@@ -32,7 +33,41 @@ export async function POST(request: Request) {
     );
   }
 
-  // TODO: persist / forward `email` to your provider of choice.
+  const apiKey = process.env.RESEND_API_KEY;
+  const audienceId = process.env.RESEND_AUDIENCE_ID;
+  const fromEmail = process.env.RESEND_FROM_EMAIL ?? "hello@velovia.bg";
 
+  if (apiKey) {
+    const resend = new Resend(apiKey);
+
+    // 1. Add to audience (stores the contact)
+    if (audienceId) {
+      const { error: contactError } = await resend.contacts.create({
+        email,
+        audienceId,
+        unsubscribed: false,
+      });
+      if (contactError) {
+        console.error("[subscribe] Resend contact error:", contactError);
+      }
+    }
+
+    // 2. Send confirmation email to the subscriber
+    const { error: emailError } = await resend.emails.send({
+      from: `Velovia Premium <${fromEmail}>`,
+      to: email,
+      subject: "You're on the Velovia Priority List ✓",
+      html: confirmationEmail(),
+    });
+    if (emailError) {
+      console.error("[subscribe] Resend email error:", emailError);
+    }
+  } else {
+    // Dev mode without credentials — log and continue
+    console.log(`[subscribe] Dev mode — would have subscribed: ${email}`);
+  }
+
+  // Always return ok:true so the UX success state is shown.
+  // Errors are logged server-side but not surfaced to the user.
   return NextResponse.json({ ok: true });
 }

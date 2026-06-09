@@ -14,19 +14,18 @@ export function Quote() {
       />
       <div className="flex-1">
         <blockquote className="text-sm leading-relaxed text-velovia-gray">
-          Velovia is more than a camp. It&apos;s a journey of performance,
-          connection &amp; transformation.
+          I look forward to welcoming you personally to the Rhodope Mountains.
         </blockquote>
         <figcaption className="mt-2 font-display text-sm italic text-velovia-pink">
-          Chef Ivaylo Petkov
+          Evgeni Gaydov, Founder of Velovia
         </figcaption>
       </div>
       <Image
-        src="/images/chef-ivaylo.jpg"
-        alt="Chef Ivaylo Petkov"
-        width={593}
-        height={510}
-        className="h-14 w-14 shrink-0 rounded-lg object-cover ring-1 ring-velovia-ink/10"
+        src="/images/ceo-evgeni-gaydov.jpg"
+        alt="Evgeni Gaydov, Founder of Velovia"
+        width={400}
+        height={400}
+        className="h-14 w-14 shrink-0 rounded-lg object-cover ring-1 ring-velovia-ink/10 transition-transform duration-300 ease-out hover:scale-110"
       />
     </figure>
   );
