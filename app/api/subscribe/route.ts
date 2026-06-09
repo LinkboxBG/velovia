@@ -73,16 +73,22 @@ export async function POST(request: Request) {
     try {
       const id = crypto.randomUUID().slice(0, 8);
       const timestamp = new Date().toISOString();
+      const payload = JSON.stringify({ id, timestamp, email });
 
-      const res = await fetch(sheetsWebhookUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, timestamp, email }),
-      });
+      console.log("[subscribe] Calling Sheets webhook for:", email);
 
-      if (!res.ok) {
-        console.error("[subscribe] Sheets webhook returned:", res.status);
-      }
+      // Google Apps Script Web Apps redirect POST → GET, losing the body.
+      // Work around by sending as URL-encoded form data which survives redirects,
+      // OR by using a manual redirect-following approach with POST preserved.
+      // Simplest reliable fix: send as a GET request with query params.
+      const url = new URL(sheetsWebhookUrl);
+      url.searchParams.set("id", id);
+      url.searchParams.set("timestamp", timestamp);
+      url.searchParams.set("email", email);
+
+      const res = await fetch(url.toString(), { method: "GET" });
+      const text = await res.text();
+      console.log("[subscribe] Sheets response:", res.status, text.slice(0, 100));
     } catch (err) {
       console.error("[subscribe] Sheets webhook error:", err);
     }
